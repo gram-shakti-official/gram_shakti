@@ -7,134 +7,122 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Noto Sans Devanagari', sans-serif; 
-            background-color: #f8fafc;
-            -webkit-tap-highlight-color: transparent;
-        }
+        body { font-family: 'Noto Sans Devanagari', sans-serif; background-color: #f8fafc; }
         .category-card:active { transform: scale(0.92); }
-        .gradient-bg { background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%); }
-        /* स्मूथ स्क्रॉलिंग के लिए */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .gradient-bg { background: linear-gradient(135deg, #059669 0%, #065f46 100%); }
+        /* पॉपअप एनीमेशन */
+        #subCatModal { transition: bottom 0.3s ease-in-out; }
     </style>
 </head>
 <body class="pb-24">
 
     <div class="gradient-bg text-white p-6 rounded-b-[2.5rem] shadow-lg sticky top-0 z-50">
-        <div class="flex justify-between items-center mb-4">
-            <h1 class="text-xl font-bold italic tracking-wider">GRAM SHAKTI</h1>
-            <div class="bg-white/20 p-2 rounded-full">🔔</div>
-        </div>
-        
+        <h1 class="text-xl font-bold italic mb-4">GRAM SHAKTI</h1>
         <div class="bg-white rounded-2xl p-3 flex items-center shadow-inner">
-            <span class="text-blue-600 mr-2 text-xl">📍</span>
+            <span class="text-emerald-600 mr-2 text-xl">📍</span>
             <div class="flex-1">
-                <input type="number" id="pinInput" maxlength="6" 
-                       class="w-full bg-transparent text-gray-800 font-bold outline-none text-sm" 
-                       placeholder="पिन कोड डालें (उदा: 302001)" 
-                       oninput="fetchLocation(this.value)">
+                <input type="number" id="pinInput" maxlength="6" class="w-full bg-transparent text-gray-800 font-bold outline-none text-sm" placeholder="पिन कोड डालें">
                 <p id="locationText" class="text-[10px] text-gray-400 font-bold uppercase">अपनी लोकेशन सेट करें</p>
             </div>
-            <div id="loader" class="hidden animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-        </div>
-    </div>
-
-    <div class="px-4 -mt-4">
-        <div class="bg-white rounded-xl shadow-md p-2 flex items-center border border-gray-100">
-            <span class="mx-2 text-gray-400">🔍</span>
-            <input type="text" placeholder="क्या काम करवाना है? (जैसे: मिस्त्री, पेंटर)" 
-                   class="w-full p-2 outline-none text-sm text-gray-700">
         </div>
     </div>
 
     <div class="p-4 mt-4">
-        <div class="flex justify-between items-center mb-4 px-2">
-            <h2 class="text-gray-800 font-bold text-lg">सभी सेवाएं</h2>
-            <span class="text-blue-600 text-xs font-bold">सभी देखें</span>
+        <h2 class="text-gray-800 font-bold text-lg mb-4 border-l-4 border-emerald-500 pl-2">सभी सेवाएं</h2>
+        <div id="categoryGrid" class="grid grid-cols-3 gap-3"></div>
+    </div>
+
+    <div id="subCatModal" class="fixed -bottom-full left-0 right-0 bg-white rounded-t-[2.5rem] shadow-[0_-10px_30px_rgba(0,0,0,0.2)] z-[60] p-6 max-h-[70vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4 sticky top-0 bg-white py-2">
+            <h3 id="modalTitle" class="text-emerald-700 font-bold text-lg">उप-श्रेणी चुनें</h3>
+            <button onclick="closeSubCat()" class="text-gray-400 text-2xl font-bold">&times;</button>
         </div>
-        
-        <div id="categoryGrid" class="grid grid-cols-3 gap-3">
+        <div id="subCatList" class="space-y-2">
             </div>
     </div>
+    <div id="overlay" onclick="closeSubCat()" class="fixed inset-0 bg-black/40 hidden z-[55]"></div>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-3 flex justify-around shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
-        <div class="flex flex-col items-center text-blue-600">
-            <span class="text-xl">🏠</span>
-            <span class="text-[10px] font-bold">होम</span>
-        </div>
-        <div class="flex flex-col items-center text-gray-400">
-            <span class="text-xl">📢</span>
-            <span class="text-[10px] font-bold">विज्ञापन</span>
-        </div>
-        <div class="flex flex-col items-center text-gray-400">
-            <span class="text-xl">💼</span>
-            <span class="text-[10px] font-bold">काम दें</span>
-        </div>
-        <div class="flex flex-col items-center text-gray-400">
-            <span class="text-xl">👤</span>
-            <span class="text-[10px] font-bold">प्रोफाइल</span>
-        </div>
-    </div>
+    <script>
+// 15 मुख्य कैटेगरी और उनके अंदर की सब-कैटेगरी का डेटा
+const serviceData = {
+    "मिस्त्री": ["बिजली मिस्त्री", "नल मिस्त्री", "राजमिस्त्री", "बढ़ई", "लोहार", "पेंटर", "बाइक मैकेनिक", "कार मैकेनिक", "ट्रैक्टर मिस्त्री"],
+    "खेती": ["खेत मजदूर", "JCB ऑपरेटर", "ट्रैक्टर ड्राइवर", "हार्वेस्टर ऑपरेटर", "माली", "डेयरी सर्विस", "खाद-बीज भंडार"],
+    "गाड़ी": ["टैक्सी ड्राइवर", "बस/ट्रक ड्राइवर", "ऑटो ड्राइवर", "पिकअप लोडिंग", "एम्बुलेंस सेवा", "टूर एंड ट्रेवल्स"],
+    "दुकान": ["किराना स्टोर", "मेडिकल स्टोर", "मोबाइल शॉप", "कपड़े की दुकान", "हार्डवेयर स्टोर", "बर्तन दुकान", "ज्वैलरी"],
+    "फंक्शन": ["हलवाई/कुक", "टेंट हाउस", "डीजे/साउंड", "फोटोग्राफर", "ब्यूटी पार्लर", "मेहंदी आर्टिस्ट"],
+    "डिजिटल": ["ई-मित्र/CSC", "साइबर कैफे", "बैंकिंग एजेंट", "बीमा एजेंट", "वकील", "प्रॉपर्टी डीलर"],
+    "घरेलू": ["दर्जी", "नाई/सैलून", "धोबी/प्रेस", "ट्यूशन टीचर", "सफाई कर्मचारी", "गार्ड", "आटा चक्की"],
+    "स्वास्थ्य": ["प्राइवेट डॉक्टर", "नर्स/ANM", "कंपाउंडर", "लैब टेस्ट", "आयुर्वेद"],
+    "शिक्षा": ["कोचिंग सेंटर", "कंप्यूटर क्लास", "ड्राइविंग स्कूल"],
+    "निर्माण": ["बिल्डिंग ठेकेदार", "रोड निर्माण", "टाइल मिस्त्री", "POP वर्क"],
+    "पशुपालन": ["मुर्गी पालन", "मछली पालन", "बकरी पालन", "मधुमक्खी पालन"],
+    "पानी": ["पानी टैंकर", "सेप्टिक टैंक सफाई", "कूड़ा गाड़ी"],
+    "किराया": ["JCB किराया", "ट्रैक्टर किराया", "शादी सामान किराया", "जनरेटर किराया"],
+    "होटल": ["ढाबा/रेस्टोरेंट", "चाय दुकान", "मिठाई दुकान", "लॉज"],
+    "रोजगार": ["दिहाड़ी मजदूर", "लोडिंग/अनलोडिंग", "अस्थायी खेत काम"]
+};
 
-<script>
-// कैटेगरीज की लिस्ट
-const categories = [
-    { name: "किसान", eng: "Farmer", icon: "👨‍🌾", color: "bg-green-50" },
-    { name: "ट्रैक्टर", eng: "Tractor", icon: "🚜", color: "bg-blue-50" },
-    { name: "दूध/डेयरी", eng: "Dairy", icon: "🥛", color: "bg-indigo-50" },
-    { name: "मिस्त्री", eng: "Mason", icon: "🧱", color: "bg-orange-50" },
-    { name: "बिजली वाला", eng: "Electrician", icon: "⚡", color: "bg-yellow-50" },
-    { name: "ड्राइवर", eng: "Driver", icon: "🚗", color: "bg-gray-100" },
-    { name: "सब्जी/फल", eng: "Food", icon: "🍎", color: "bg-red-50" },
-    { name: "किराना", eng: "Grocery", icon: "🛒", color: "bg-emerald-50" },
-    { name: "मोबाइल", eng: "Mobile", icon: "📱", color: "bg-purple-50" }
+const mainCategories = [
+    { name: "मिस्त्री", icon: "🛠️", color: "bg-blue-50" },
+    { name: "खेती", icon: "🚜", color: "bg-emerald-50" },
+    { name: "गाड़ी", icon: "🚚", color: "bg-orange-50" },
+    { name: "दुकान", icon: "🏪", color: "bg-purple-50" },
+    { name: "फंक्शन", icon: "🎉", color: "bg-pink-50" },
+    { name: "डिजिटल", icon: "💻", color: "bg-cyan-50" },
+    { name: "घरेलू", icon: "🏠", color: "bg-indigo-50" },
+    { name: "स्वास्थ्य", icon: "🏥", color: "bg-red-50" },
+    { name: "शिक्षा", icon: "🎓", color: "bg-amber-50" },
+    { name: "निर्माण", icon: "🏗️", color: "bg-slate-100" },
+    { name: "पशुपालन", icon: "🐄", color: "bg-lime-50" },
+    { name: "पानी", icon: "🚰", color: "bg-sky-50" },
+    { name: "किराया", icon: "🔑", color: "bg-rose-50" },
+    { name: "होटल", icon: "☕", color: "bg-yellow-50" },
+    { name: "रोजगार", icon: "💼", color: "bg-teal-50" }
 ];
 
-// कैटेगरीज लोड करना
 function init() {
     const grid = document.getElementById('categoryGrid');
-    grid.innerHTML = categories.map(cat => `
-        <div class="category-card ${cat.color} p-4 rounded-[2rem] flex flex-col items-center justify-center text-center shadow-sm border border-white transition-all active:shadow-inner" 
-             onclick="openCategory('${cat.eng}')">
-            <span class="text-3xl mb-2">${cat.icon}</span>
-            <p class="text-[11px] font-bold text-gray-700 leading-tight">${cat.name}</p>
+    grid.innerHTML = mainCategories.map(cat => `
+        <div class="category-card ${cat.color} p-4 rounded-[2rem] flex flex-col items-center justify-center text-center shadow-sm border border-white transition-all cursor-pointer" 
+             onclick="showSubCat('${cat.name}')">
+            <span class="text-3xl mb-1">${cat.icon}</span>
+            <p class="text-[11px] font-bold text-gray-700">${cat.name}</p>
         </div>
     `).join('');
 }
 
-// पिन कोड से लोकेशन फेच करना (Free API)
-async function fetchLocation(pin) {
-    if(pin.length === 6) {
-        const loader = document.getElementById('loader');
-        const locText = document.getElementById('locationText');
-        loader.classList.remove('hidden');
-        
-        try {
-            const response = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
-            const data = await response.json();
-            
-            if(data[0].Status === "Success") {
-                const details = data[0].PostOffice[0];
-                locText.innerText = `${details.District}, ${details.State} ✅`;
-                locText.classList.replace('text-gray-400', 'text-green-600');
-            } else {
-                locText.innerText = "गलत पिन कोड!";
-                locText.classList.replace('text-gray-400', 'text-red-500');
-            }
-        } catch (e) {
-            locText.innerText = "नेटवर्क की समस्या!";
-        }
-        loader.classList.add('hidden');
-    }
+function showSubCat(mainCat) {
+    const list = serviceData[mainCat];
+    const modal = document.getElementById('subCatModal');
+    const overlay = document.getElementById('overlay');
+    const subList = document.getElementById('subCatList');
+    
+    document.getElementById('modalTitle').innerText = `${mainCat} के काम चुनें`;
+    
+    subList.innerHTML = list.map(sub => `
+        <div class="p-4 border-b border-gray-100 hover:bg-emerald-50 font-bold text-gray-700 flex justify-between items-center cursor-pointer" 
+             onclick="selectSub('${sub}')">
+            ${sub} <span class="text-emerald-500">→</span>
+        </div>
+    `).join('');
+
+    modal.style.bottom = "0";
+    overlay.classList.remove('hidden');
 }
 
-function openCategory(name) {
+function closeSubCat() {
+    document.getElementById('subCatModal').style.bottom = "-100%";
+    document.getElementById('overlay').classList.add('hidden');
+}
+
+function selectSub(sub) {
     const pin = document.getElementById('pinInput').value;
     if(!pin || pin.length < 6) {
-        alert("पहले अपना सही पिन कोड डालें!");
+        alert("पहले अपना 6 अंकों का सही पिन कोड डालें!");
         return;
     }
-    alert(`${name} के वर्कर पिन कोड ${pin} में खोजे जा रहे हैं...`);
+    alert(`${sub} के वर्कर पिन कोड ${pin} में खोजे जा रहे हैं...`);
+    closeSubCat();
 }
 
 init();
